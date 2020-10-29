@@ -58,9 +58,12 @@ func Translate(input string) string {
 		if len(cand) > 0 {
 			// [TODO] if the word has multiple candidates,
 			//        choose one of them at random
+			// [TODO] PoS based replacement
+			//        e.g., 終助詞 -> こと　（ですね -> ですこと）
 			// [TODO] use `relation` to determine translatability
 			//        e.g., source | target | relation   | arg0 | ...
 			//              です   | ですわ  | not before | わ   | ...
+			// [TODO] consider better replacement logic
 			ret += cand[0].Target
 		} else {
 			// not registered word
