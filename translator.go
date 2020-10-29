@@ -7,8 +7,18 @@ import (
 
 	"github.com/ikawaha/kagome-dict/ipa"
 	"github.com/ikawaha/kagome/v2/tokenizer"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/lib/pq"
 )
+
+// RegisteredWord : gorm table
+type RegisteredWord struct {
+	Id       int
+	Source   string
+	Target   string
+	Relation sql.NullString
+}
 
 // read environment variables related to database
 // dbname, username, password
@@ -25,8 +35,7 @@ func Translate(input string) string {
 
 	t, err := tokenizer.New(ipa.Dict(), tokenizer.OmitBosEos())
 	if err != nil {
-		fmt.Println("error in initializing tokenizer", err)
-		return "Internal Error"
+		return fmt.Sprintln("error in initializing tokenizer", err)
 	}
 
 	// split into word list
@@ -38,50 +47,28 @@ func Translate(input string) string {
 		}
 	}
 
-	// [TODO] replace 'translatable' words
-	dbname, user, pass := getDatabaseConfig()
-	db, err := sql.Open(
-		"postgres",
-		fmt.Sprintf("user=%s dbname=%s password=%s sslmode=disable", user, dbname, pass),
-	)
-
+	// replace 'translatable' words
+	databaseURL := os.Getenv("DATABASE_URL")
+	db, err := gorm.Open("postgres", databaseURL)
 	if err != nil {
-		fmt.Println("error in openning database,", err)
-		return "Internal Error"
+		return fmt.Sprintln("error in openning database,", err)
 	}
 	defer db.Close()
 
 	ret := ""
 	for _, w := range words {
-		rows, err := db.Query("SELECT target FROM ojousamaDict WHERE source='" + w + "';")
-		if err != nil {
-			fmt.Println("error in db query,", err)
-			fmt.Println("word: ", w)
-			return "Internal Error"
+		cand := []RegisteredWord{}
+		//
+		result := db.Find(&cand, "source=?", w)
+		if result.Error != nil {
+			return fmt.Sprintln("error in db query,", result.Error)
 		}
-		defer rows.Close()
 
 		// translate
-		cand := make([]string, 0)
-		for rows.Next() {
-			var target string
-			if err := rows.Scan(&target); err != nil {
-				fmt.Println("error in scanning rows,", err)
-				return "Internal Error"
-			}
-			cand = append(cand, target)
-		}
-
-		rerr := rows.Close()
-		if rerr != nil {
-			fmt.Println("error in closing rows,", rerr)
-			return "Internal Error"
-		}
-
 		if len(cand) > 0 {
 			// [TODO] if the word has multiple candidates,
 			// choose one of them at random
-			ret += cand[0]
+			ret += cand[0].Target
 		} else {
 			// not registered word
 			ret += w
