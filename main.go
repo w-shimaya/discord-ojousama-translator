@@ -48,6 +48,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	// Process messages that start with "!ojou " as commands
 	if strings.HasPrefix(m.Content, "!ojou ") {
+		// [TODO] users should be able to register words
 		sentence := string([]rune(m.Content)[6:])
 		s.ChannelMessageSend(m.ChannelID, Translate(sentence))
 	}

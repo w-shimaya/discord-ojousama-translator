@@ -20,16 +20,6 @@ type RegisteredWord struct {
 	Relation sql.NullString
 }
 
-// read environment variables related to database
-// dbname, username, password
-func getDatabaseConfig() (string, string, string) {
-
-	dbname := os.Getenv("PGDBNAME")
-	dbuser := os.Getenv("PGUSER")
-	dbpass := os.Getenv("PGPASS")
-	return dbname, dbuser, dbpass
-}
-
 // Translate translates input sentence into Ojousama-Lang
 func Translate(input string) string {
 
@@ -67,7 +57,10 @@ func Translate(input string) string {
 		// translate
 		if len(cand) > 0 {
 			// [TODO] if the word has multiple candidates,
-			// choose one of them at random
+			//        choose one of them at random
+			// [TODO] use `relation` to determine translatability
+			//        e.g., source | target | relation   | arg0 | ...
+			//              です   | ですわ  | not before | わ   | ...
 			ret += cand[0].Target
 		} else {
 			// not registered word
