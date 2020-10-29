@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 
@@ -14,10 +13,10 @@ import (
 
 // RegisteredWord : gorm table
 type RegisteredWord struct {
-	Id       int
-	Source   string
-	Target   string
-	Relation sql.NullString
+	Id            int
+	SourceSurface string
+	SourcePos     string
+	TargetSurface string
 }
 
 // Translate translates input sentence into Ojousama-Lang
@@ -30,12 +29,6 @@ func Translate(input string) string {
 
 	// split into word list
 	tokens := t.Analyze(input, tokenizer.Search)
-	words := make([]string, 0, len(tokens))
-	for _, v := range tokens {
-		if v.Class != tokenizer.DUMMY && v.Surface != "" {
-			words = append(words, v.Surface)
-		}
-	}
 
 	// replace 'translatable' words
 	databaseURL := os.Getenv("DATABASE_URL")
@@ -46,10 +39,26 @@ func Translate(input string) string {
 	defer db.Close()
 
 	ret := ""
-	for _, w := range words {
+	precedingPos := ""
+	for i, token := range tokens {
+		if token.Class == tokenizer.DUMMY || token.Surface == "" {
+			continue
+		}
+
+		// prefix and suffix addition
+		// 連続する一般名詞の先頭に「お」
+		pos := token.POS()
+		if pos[0] == "名詞" && pos[1] == "一般" {
+			// 先頭にあるか，一つ前が名詞でない
+			if i == 0 || precedingPos != "名詞" {
+				ret += "お"
+			}
+		}
+		precedingPos = pos[0]
+
+		// look up database
 		cand := []RegisteredWord{}
-		//
-		result := db.Find(&cand, "source=?", w)
+		result := db.Find(&cand, "source_surface=?", token.Surface)
 		if result.Error != nil {
 			return fmt.Sprintln("error in db query,", result.Error)
 		}
@@ -67,10 +76,17 @@ func Translate(input string) string {
 			//              です   | ですわ  | not before | わ   | ...
 			// [TODO] consider better replacement logic
 			//        such as maximizing `digree of fun'
-			ret += cand[0].Target
+			addstr := token.Surface
+			for _, c := range cand {
+				// replace if the PoS matches
+				if c.SourcePos == token.POS()[0] {
+					addstr = c.TargetSurface
+				}
+			}
+			ret += addstr
 		} else {
 			// not registered word
-			ret += w
+			ret += token.Surface
 		}
 	}
 
