@@ -59,11 +59,14 @@ func Translate(input string) string {
 			// [TODO] if the word has multiple candidates,
 			//        choose one of them at random
 			// [TODO] PoS based replacement
-			//        e.g., 終助詞 -> こと　（ですね -> ですこと）
+			//        e.g., 終助詞 -> こと（ですね -> ですこと）
+			//        e.g., か（終助詞） -> の（ますか -> ますの）
+			// [TODO] not only replacing but also adding words
 			// [TODO] use `relation` to determine translatability
 			//        e.g., source | target | relation   | arg0 | ...
 			//              です   | ですわ  | not before | わ   | ...
 			// [TODO] consider better replacement logic
+			//        such as maximizing `digree of fun'
 			ret += cand[0].Target
 		} else {
 			// not registered word
