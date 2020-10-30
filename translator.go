@@ -83,7 +83,7 @@ func Translate(input string) string {
 			for _, c := range cand {
 				// replace if the PoS matches
 				posStr := strings.Join(token.POS(), ",")
-				if strings.HasPrefix(c.SourcePos, posStr) {
+				if strings.HasPrefix(posStr, c.SourcePos) {
 					addstr = c.TargetSurface
 				}
 			}
