@@ -101,7 +101,6 @@ func Translate(input string) string {
 				nextPos == "助詞" || (nextPos == "助動詞" && nextBase != "ます") {
 				// 動詞を連用形に活用する
 				conj := ConjugateVerb(token, renyo)
-				fmt.Println(conj)
 				// remove overlapping
 				runeconj := []rune(conj)
 				runeret := []rune(ret)
@@ -111,7 +110,7 @@ func Translate(input string) string {
 					}
 				}
 				// concat conjugated verb
-				ret += ConjugateVerb(token, renyo)
+				ret += conj
 				// 「ます」を適切な活用の上追加する
 				ret += Conjugate("ます", nextBase, nextPos)
 			}

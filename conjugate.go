@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/ikawaha/kagome/v2/tokenizer"
@@ -69,8 +68,6 @@ func ConjugateVerb(token tokenizer.Token, conjug ConjugType) string {
 	// verb must have features
 	infType, _ := token.FeatureAt(4)
 	b, _ := token.BaseForm()
-
-	fmt.Println(infType, b)
 
 	switch {
 	case strings.HasPrefix(infType, "五段"):
