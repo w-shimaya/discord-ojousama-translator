@@ -55,16 +55,70 @@ func Translate(input string) string {
 		pos := token.POS()
 		if pos[0] == "名詞" &&
 			(pos[1] == "一般" || pos[1] == "サ変接続" || pos[1] == "数") {
-			// 先頭にあるか，一つ前が名詞でない
-			if i == 0 || precedingPos != "名詞" {
+			// 先頭にあるか，一つ前が名詞，接頭詞でない
+			if i == 0 || (precedingPos != "名詞" && precedingPos != "接頭詞") {
 				ret += "お"
 			}
 		}
 		precedingPos = pos[0]
 
+		// look up database
+		cand := []RegisteredWord{}
+		posStr := strings.Join(token.POS(), ",")
+		result := db.Where("(source_surface=? OR source_surface IS NULL) AND (? LIKE source_pos || '%' OR source_pos IS NULL)", token.Surface, posStr).Find(&cand)
+		if result.Error != nil {
+			return fmt.Sprintln("error in db query,", result.Error)
+		}
+
+		// translate
+		if len(cand) > 0 {
+			// [TODO] consider better replacement logic
+			//        such as maximizing `digree of fun'
+
+			// if the word has multiple candidates, choose one of them at random
+			rand.Seed(time.Now().UnixNano())
+			p := rand.Intn(len(cand))
+			ret += cand[p].TargetSurface
+		} else {
+			// not registered word
+			ret += token.Surface
+		}
+
 		// suffix addition
+		// 丁寧語変換
+		if token.POS()[0] == "動詞" {
+			// collect required info about the next token
+			var nextPos string
+			var nextBase string
+			if i+1 < len(tokens) {
+				nextPos = tokens[i+1].POS()[0]
+				nextBase, _ = tokens[i+1].BaseForm()
+			}
+
+			// 動詞で終わる or 動詞のすぐ後に「ます」以外の助詞助動詞あるいは句点が続く
+			// => 丁寧語でないとみなす
+			if i == len(tokens)-1 || nextPos == "句点" ||
+				nextPos == "助詞" || (nextPos == "助動詞" && nextBase != "ます") {
+				// 動詞を連用形に活用する
+				conj := ConjugateVerb(token, renyo)
+				fmt.Println(conj)
+				// remove overlapping
+				runeconj := []rune(conj)
+				runeret := []rune(ret)
+				for i := len(runeret) - 1; i >= 0; i-- {
+					if runeconj[0] == runeret[i] {
+						ret = string(runeret[:i])
+					}
+				}
+				// concat conjugated verb
+				ret += ConjugateVerb(token, renyo)
+				// 「ます」を適切な活用の上追加する
+				ret += Conjugate("ます", nextBase, nextPos)
+			}
+		}
+
 		// explicit EOS
-		if token.Surface == "。" && i-1 > 0 &&
+		if token.POS()[0] == "句点" && i > 0 &&
 			tokens[i-1].POS()[0] != "助詞" &&
 			tokens[i-1].POS()[0] != "記号" {
 			// e.g., ました。 -> ましたわ。
@@ -87,45 +141,10 @@ func Translate(input string) string {
 			rand.Seed(time.Now().UnixNano())
 			p := rand.Float32()
 			if p < 0.5 {
-				ret += token.Surface + "わ"
+				ret += "わ"
 			} else {
-				ret += token.Surface + "の"
+				ret += "の"
 			}
-			break
-		}
-
-		// look up database
-		cand := []RegisteredWord{}
-		result := db.Find(&cand, "source_surface=?", token.Surface)
-		if result.Error != nil {
-			return fmt.Sprintln("error in db query,", result.Error)
-		}
-
-		// translate
-		if len(cand) > 0 {
-			// [TODO] if the word has multiple candidates,
-			//        choose one of them at random
-			// [TODO] PoS based replacement
-			//        e.g., 終助詞 -> こと（ですね -> ですこと）
-			//        e.g., か（終助詞） -> の（ますか -> ますの）
-			// [TODO] not only replacing but also adding words
-			// [TODO] use `relation` to determine translatability
-			//        e.g., source | target | relation   | arg0 | ...
-			//              です   | ですわ  | not before | わ   | ...
-			// [TODO] consider better replacement logic
-			//        such as maximizing `digree of fun'
-			addstr := token.Surface
-			for _, c := range cand {
-				// replace if the PoS matches
-				posStr := strings.Join(token.POS(), ",")
-				if strings.HasPrefix(posStr, c.SourcePos) {
-					addstr = c.TargetSurface
-				}
-			}
-			ret += addstr
-		} else {
-			// not registered word
-			ret += token.Surface
 		}
 	}
 
