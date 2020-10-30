@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ikawaha/kagome-dict/ipa"
 	"github.com/ikawaha/kagome/v2/tokenizer"
@@ -48,12 +49,14 @@ func Translate(input string) string {
 		// prefix and suffix addition
 		// 連続する一般名詞の先頭に「お」
 		pos := token.POS()
-		if pos[0] == "名詞" && pos[1] == "一般" {
+		if pos[0] == "名詞" &&
+			(pos[1] == "一般" || pos[1] == "サ変接続" || pos[1] == "数") {
 			// 先頭にあるか，一つ前が名詞でない
 			if i == 0 || precedingPos != "名詞" {
 				ret += "お"
 			}
 		}
+
 		precedingPos = pos[0]
 
 		// look up database
@@ -79,7 +82,8 @@ func Translate(input string) string {
 			addstr := token.Surface
 			for _, c := range cand {
 				// replace if the PoS matches
-				if c.SourcePos == token.POS()[0] {
+				posStr := strings.Join(token.POS(), ",")
+				if strings.HasPrefix(c.SourcePos, posStr) {
 					addstr = c.TargetSurface
 				}
 			}
