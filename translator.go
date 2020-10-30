@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ikawaha/kagome-dict/ipa"
 	"github.com/ikawaha/kagome/v2/tokenizer"
@@ -46,8 +48,10 @@ func Translate(input string) string {
 			continue
 		}
 
-		// prefix and suffix addition
-		// 連続する一般名詞の先頭に「お」
+		// prefix addition
+		// ! these process should be refactored
+		//   to have more generality
+		// 連続する名詞の頭に「お」
 		pos := token.POS()
 		if pos[0] == "名詞" &&
 			(pos[1] == "一般" || pos[1] == "サ変接続" || pos[1] == "数") {
@@ -56,8 +60,39 @@ func Translate(input string) string {
 				ret += "お"
 			}
 		}
-
 		precedingPos = pos[0]
+
+		// suffix addition
+		// explicit EOS
+		if token.Surface == "。" && i-1 > 0 &&
+			tokens[i-1].POS()[0] != "助詞" &&
+			tokens[i-1].POS()[0] != "記号" {
+			// e.g., ました。 -> ましたわ。
+			//       した    -> したの。
+			// at random (at 50% probability)
+			rand.Seed(time.Now().UnixNano())
+			p := rand.Float32()
+			if p < 0.5 {
+				ret += "わ"
+			} else {
+				ret += "の"
+			}
+		}
+		// implicit EOS
+		if i == len(tokens)-1 &&
+			(token.POS()[0] != "助詞" &&
+				token.POS()[0] != "記号" &&
+				token.POS()[0] != "名詞") {
+
+			rand.Seed(time.Now().UnixNano())
+			p := rand.Float32()
+			if p < 0.5 {
+				ret += token.Surface + "わ"
+			} else {
+				ret += token.Surface + "の"
+			}
+			break
+		}
 
 		// look up database
 		cand := []RegisteredWord{}
