@@ -90,9 +90,11 @@ func Translate(input string) string {
 			// collect required info about the next token
 			var nextPos string
 			var nextBase string
+			var nextSurface string
 			if i+1 < len(tokens) {
 				nextPos = tokens[i+1].POS()[0]
 				nextBase, _ = tokens[i+1].BaseForm()
+				nextSurface = tokens[i+1].Surface
 			}
 
 			// 動詞で終わる or 動詞のすぐ後に「ます」「て」以外の助詞助動詞あるいは句点が続く
@@ -115,6 +117,10 @@ func Translate(input string) string {
 				ret += conj
 				// 「ます」を適切な活用の上追加する
 				ret += Conjugate("ます", nextBase, nextPos)
+				// [TBC] しない -> しません
+				if nextPos == "助動詞" && nextSurface == "ない" {
+					tokens[i+1].Surface = "ん"
+				}
 			}
 		}
 

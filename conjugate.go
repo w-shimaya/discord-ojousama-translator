@@ -40,7 +40,7 @@ func Conjugate(v string, base string, pos string) string {
 	case "ます":
 		t := auxConjug(base)
 		// exceptions
-		if base == "ん" || base == "ぬ" {
+		if base == "ん" || base == "ぬ" || base == "ない" {
 			t = katei // not true but for convenience
 		}
 		if base == "まい" {
