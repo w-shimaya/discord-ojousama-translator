@@ -91,7 +91,8 @@ func ConjugateVerb(token tokenizer.Token, conjug ConjugType) string {
 		case meirei:
 			row = 4
 		}
-		return string(stem) + getCharFromColumnRow(column, row)
+		retstr := string(stem) + getCharFromColumnRow(column, row)
+		return retstr
 	case strings.HasPrefix(infType, "一段"):
 		// get stem
 		stem := []rune(b)
