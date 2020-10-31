@@ -105,14 +105,9 @@ func Translate(input string) string {
 				// 動詞を連用形に活用する
 				conj := ConjugateVerb(token, renyo)
 				// remove overlapping
-				runeconj := []rune(conj)
 				runeret := []rune(ret)
-				for i := len(runeret) - 1; i >= 0; i-- {
-					if runeconj[0] == runeret[i] {
-						ret = string(runeret[:i])
-						break
-					}
-				}
+				surflen := len([]rune(token.Surface))
+				ret = string(runeret[:len(runeret)-surflen])
 				// concat conjugated verb
 				ret += conj
 				// 「ます」を適切な活用の上追加する
@@ -125,11 +120,11 @@ func Translate(input string) string {
 		}
 
 		// explicit EOS
+		// e.g., ました。 -> ましたわ。
 		if token.POS()[0] == "句点" && i > 0 &&
 			tokens[i-1].POS()[0] != "助詞" &&
-			tokens[i-1].POS()[0] != "記号" {
-			// e.g., ました。 -> ましたわ。
-			//       した    -> したの。
+			tokens[i-1].POS()[0] != "記号" &&
+			tokens[i-1].POS()[0] != "感動詞" {
 			// at random (at 50% probability)
 			rand.Seed(time.Now().UnixNano())
 			p := rand.Float32()
@@ -140,10 +135,12 @@ func Translate(input string) string {
 			}
 		}
 		// implicit EOS
+		// e.g., した -> したの。
 		if i == len(tokens)-1 &&
 			(token.POS()[0] != "助詞" &&
 				token.POS()[0] != "記号" &&
-				token.POS()[0] != "名詞") {
+				token.POS()[0] != "名詞" &&
+				token.POS()[0] != "感動詞") {
 
 			rand.Seed(time.Now().UnixNano())
 			p := rand.Float32()
