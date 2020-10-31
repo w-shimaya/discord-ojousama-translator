@@ -111,15 +111,30 @@ func ConjugateVerb(token tokenizer.Token, conjug ConjugType) string {
 			return string(stem) + "ろ"
 		}
 	case strings.HasPrefix(infType, "カ変"):
-		switch conjug {
-		case mizen, renyo:
-			return "来"
-		case shushi, rentai:
-			return "来る"
-		case katei:
-			return "来れ"
-		case meirei:
-			return "来い"
+		if []rune(token.Surface)[0] == '来' {
+			switch conjug {
+			case mizen, renyo:
+				return "来"
+			case shushi, rentai:
+				return "来る"
+			case katei:
+				return "来れ"
+			case meirei:
+				return "来い"
+			}
+		} else {
+			switch conjug {
+			case mizen:
+				return "こ"
+			case renyo:
+				return "き"
+			case shushi, rentai:
+				return "くる"
+			case katei:
+				return "くれ"
+			case meirei:
+				return "こい"
+			}
 		}
 	case strings.HasPrefix(infType, "サ変"):
 		switch conjug {
