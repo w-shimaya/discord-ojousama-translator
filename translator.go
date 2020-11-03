@@ -101,19 +101,33 @@ func Translate(input string) string {
 			if i == len(tokens)-1 || nextPos == "句点" ||
 				(nextPos == "助詞" && nextBase != "て") ||
 				(nextPos == "助動詞" && nextBase != "ます") {
-				// 動詞を連用形に活用する
-				conj := ConjugateVerb(token, renyo)
-				// remove overlapping
-				runeret := []rune(ret)
-				surflen := len([]rune(token.Surface))
-				ret = string(runeret[:len(runeret)-surflen])
-				// concat conjugated verb
-				ret += conj
-				// 「ます」を適切な活用の上追加する
-				ret += Conjugate("ます", nextBase, nextPos)
-				// [TBC] しない -> しません
-				if nextPos == "助動詞" && nextSurface == "ない" {
-					tokens[i+1].Surface = "ん"
+				// 命令形
+				form, _ := token.FeatureAt(5)
+				if strings.HasPrefix(form, "命令") {
+					conj := ConjugateVerb(token, renyoTe)
+					// remove overlapping
+					runeret := []rune(ret)
+					surflen := len([]rune(token.Surface))
+					ret = string(runeret[:len(runeret)-surflen])
+					// concat verb
+					ret += conj
+					// add 「てくださいませ」
+					ret += "てくださいませ"
+				} else {
+					// 動詞を連用形に活用する
+					conj := ConjugateVerb(token, renyo)
+					// remove overlapping
+					runeret := []rune(ret)
+					surflen := len([]rune(token.Surface))
+					ret = string(runeret[:len(runeret)-surflen])
+					// concat conjugated verb
+					ret += conj
+					// 「ます」を適切な活用の上追加する
+					ret += Conjugate("ます", nextBase, nextPos)
+					// [TBC] しない -> しません
+					if nextPos == "助動詞" && nextSurface == "ない" {
+						tokens[i+1].Surface = "ん"
+					}
 				}
 			}
 		}
@@ -122,27 +136,32 @@ func Translate(input string) string {
 		// 1. 「わ」「の」 (normal sentence)
 		// 2. 「かしら」 (interrogative sentence)
 		// [TBC] these process will be improved to utilize database
+		// [TODO:refactor] much portion of explicit & implicit EOS procedure looks very similar
 
 		// explicit EOS
 		if token.POS()[0] == "記号" && i > 0 && tokens[i-1].POS()[0] != "助詞" && tokens[i-1].POS()[0] != "記号" && tokens[i-1].POS()[0] != "感動詞" && tokens[i-1].Surface != "う" {
 			retrune := []rune(ret)
-			// interrogate sentence
-			if token.Surface == "？" {
+			preForm, _ := tokens[i-1].FeatureAt(5)
+			if strings.HasPrefix(preForm, "命令") {
+				// imperative sentence
+				// no suffix
+			} else if token.Surface == "？" {
+				// interrogate sentence
 				if tokens[i-1].Surface == "か" {
 					ret = string(retrune[:len(retrune)-2]) + "かしら" + token.Surface
 				} else {
 					ret = string(retrune[:len(retrune)-1]) + "かしら" + token.Surface
 				}
-				// normal sentence
 			} else {
-				// at random (at 50% probability)
-				rand.Seed(time.Now().UnixNano())
-				p := rand.Float32()
+				// normal sentence
 				desu := ""
 				if tokens[i-1].POS()[0] == "名詞" {
 					desu = "です"
 				}
 
+				// at random (at 50% probability)
+				rand.Seed(time.Now().UnixNano())
+				p := rand.Float32()
 				if p < 0.5 {
 					ret = string(retrune[:len(retrune)-1]) + desu + "わ" + token.Surface
 				} else {
@@ -158,18 +177,29 @@ func Translate(input string) string {
 				token.POS()[0] != "名詞" &&
 				token.POS()[0] != "感動詞") {
 
-			// interrogative sentence
-			if token.Surface == "か" {
+			preForm, _ := token.FeatureAt(5)
+			if strings.HasPrefix(preForm, "命令") {
+				// imperative sentence
+				// no suffix
+			} else if token.Surface == "か" {
+				// interrogative sentence
 				retrune := []rune(ret)
 				ret = string(retrune[:len(retrune)-1]) + "かしら"
-				// normal sentence
 			} else {
+				// normal sentence
 				rand.Seed(time.Now().UnixNano())
 				p := rand.Float32()
+
+				desu := ""
+				if tokens[i-1].POS()[0] == "名詞" {
+					desu = "です"
+				}
+
+				// at random (at 50% probability)
 				if p < 0.5 {
-					ret += "わ"
+					ret += desu + "わ"
 				} else {
-					ret += "の"
+					ret += desu + "の"
 				}
 			}
 		}

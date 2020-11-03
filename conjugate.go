@@ -12,6 +12,7 @@ type ConjugType int
 const (
 	mizen ConjugType = iota
 	renyo
+	renyoTe
 	shushi
 	rentai
 	katei
@@ -49,7 +50,7 @@ func Conjugate(v string, base string, pos string) string {
 		switch t {
 		case mizen:
 			return "ましょ"
-		case renyo:
+		case renyo, renyoTe:
 			return "まし"
 		case shushi, rentai:
 			return "ます"
@@ -90,6 +91,18 @@ func ConjugateVerb(token tokenizer.Token, conjug ConjugType) string {
 			row = 3
 		case meirei:
 			row = 4
+		case renyoTe:
+			// euphonic change
+			switch column {
+			case 'カ', 'ガ':
+				return string(stem) + "い"
+			case 'ア', 'タ', 'ラ', 'ワ':
+				return string(stem) + "っ"
+			case 'ナ', 'バ', 'マ':
+				return string(stem) + "ん"
+			default:
+				row = 1
+			}
 		}
 		retstr := string(stem) + getCharFromColumnRow(column, row)
 		return retstr
@@ -99,7 +112,7 @@ func ConjugateVerb(token tokenizer.Token, conjug ConjugType) string {
 		stem = stem[:len(stem)-1]
 		// conjug
 		switch conjug {
-		case mizen, renyo:
+		case mizen, renyo, renyoTe:
 			return string(stem)
 		case shushi, rentai:
 			return string(stem) + "る"
@@ -111,7 +124,7 @@ func ConjugateVerb(token tokenizer.Token, conjug ConjugType) string {
 	case strings.HasPrefix(infType, "カ変"):
 		if []rune(token.Surface)[0] == '来' {
 			switch conjug {
-			case mizen, renyo:
+			case mizen, renyo, renyoTe:
 				return "来"
 			case shushi, rentai:
 				return "来る"
@@ -124,7 +137,7 @@ func ConjugateVerb(token tokenizer.Token, conjug ConjugType) string {
 			switch conjug {
 			case mizen:
 				return "こ"
-			case renyo:
+			case renyo, renyoTe:
 				return "き"
 			case shushi, rentai:
 				return "くる"
@@ -136,7 +149,7 @@ func ConjugateVerb(token tokenizer.Token, conjug ConjugType) string {
 		}
 	case strings.HasPrefix(infType, "サ変"):
 		switch conjug {
-		case mizen, renyo:
+		case mizen, renyo, renyoTe:
 			return "し"
 		case shushi, rentai:
 			return "する"
