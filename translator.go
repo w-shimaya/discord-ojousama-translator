@@ -138,10 +138,15 @@ func Translate(input string) string {
 				// at random (at 50% probability)
 				rand.Seed(time.Now().UnixNano())
 				p := rand.Float32()
+				desu := ""
+				if tokens[i-1].POS()[0] == "名詞" {
+					desu = "です"
+				}
+
 				if p < 0.5 {
-					ret = string(retrune[:len(retrune)-1]) + "わ" + token.Surface
+					ret = string(retrune[:len(retrune)-1]) + desu + "わ" + token.Surface
 				} else {
-					ret = string(retrune[:len(retrune)-1]) + "の" + token.Surface
+					ret = string(retrune[:len(retrune)-1]) + desu + "の" + token.Surface
 				}
 			}
 		}
