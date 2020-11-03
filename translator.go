@@ -52,9 +52,12 @@ func Translate(input string) string {
 		// ! these process should be refactored
 		//   to have more generality
 		// 連続する名詞の頭に「お」
+		// note: 半角() == "名詞,サ変接続"
 		pos := token.POS()
 		if pos[0] == "名詞" &&
-			(pos[1] == "一般" || pos[1] == "サ変接続" || pos[1] == "数" || pos[1] == "形容動詞語幹") {
+			(pos[1] == "一般" ||
+				(pos[1] == "サ変接続" && token.Surface != "(" && token.Surface != ")") ||
+				pos[1] == "数" || pos[1] == "形容動詞語幹") {
 			// 先頭にあるか，一つ前が名詞，接頭詞でない
 			if i == 0 || (precedingPos != "名詞" && precedingPos != "接頭詞") {
 				ret += "お"
