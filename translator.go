@@ -175,7 +175,8 @@ func Translate(input string) string {
 			(token.POS()[0] != "助詞" &&
 				token.POS()[0] != "記号" &&
 				token.POS()[0] != "名詞" &&
-				token.POS()[0] != "感動詞") {
+				token.POS()[0] != "感動詞" &&
+				token.Surface != "う") {
 
 			preForm, _ := token.FeatureAt(5)
 			if strings.HasPrefix(preForm, "命令") {
