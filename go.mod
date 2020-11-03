@@ -8,4 +8,5 @@ require (
 	github.com/ikawaha/kagome/v2 v2.3.2
 	github.com/jinzhu/gorm v1.9.16
 	github.com/lib/pq v1.8.0
+	golang.org/x/text v0.3.3
 )

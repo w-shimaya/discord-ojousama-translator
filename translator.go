@@ -52,12 +52,8 @@ func Translate(input string) string {
 		// ! these process should be refactored
 		//   to have more generality
 		// 連続する名詞の頭に「お」
-		// note: 半角() == "名詞,サ変接続"
 		pos := token.POS()
-		if pos[0] == "名詞" &&
-			(pos[1] == "一般" ||
-				(pos[1] == "サ変接続" && token.Surface != "(" && token.Surface != ")") ||
-				pos[1] == "数" || pos[1] == "形容動詞語幹") {
+		if pos[0] == "名詞" && (pos[1] == "一般" || pos[1] == "サ変接続" || pos[1] == "数" || pos[1] == "形容動詞語幹") {
 			// 先頭にあるか，一つ前が名詞，接頭詞でない
 			if i == 0 || (precedingPos != "名詞" && precedingPos != "接頭詞") {
 				ret += "お"
@@ -122,35 +118,54 @@ func Translate(input string) string {
 			}
 		}
 
+		// EOS translation
+		// 1. 「わ」「の」 (normal sentence)
+		// 2. 「かしら」 (interrogative sentence)
+		// [TBC] these process will be improved to utilize database
+
 		// explicit EOS
-		// e.g., ました。 -> ましたわ。
-		if token.POS()[0] == "句点" && i > 0 &&
-			tokens[i-1].POS()[0] != "助詞" &&
-			tokens[i-1].POS()[0] != "記号" &&
-			tokens[i-1].POS()[0] != "感動詞" {
-			// at random (at 50% probability)
-			rand.Seed(time.Now().UnixNano())
-			p := rand.Float32()
-			if p < 0.5 {
-				ret += "わ"
+		if token.POS()[0] == "記号" && i > 0 && tokens[i-1].POS()[0] != "助詞" && tokens[i-1].POS()[0] != "記号" && tokens[i-1].POS()[0] != "感動詞" && tokens[i-1].Surface != "う" {
+			retrune := []rune(ret)
+			// interrogate sentence
+			if token.Surface == "？" {
+				if tokens[i-1].Surface == "か" {
+					ret = string(retrune[:len(retrune)-2]) + "かしら" + token.Surface
+				} else {
+					ret = string(retrune[:len(retrune)-1]) + "かしら" + token.Surface
+				}
+				// normal sentence
 			} else {
-				ret += "の"
+				// at random (at 50% probability)
+				rand.Seed(time.Now().UnixNano())
+				p := rand.Float32()
+				if p < 0.5 {
+					ret = string(retrune[:len(retrune)-1]) + "わ" + token.Surface
+				} else {
+					ret = string(retrune[:len(retrune)-1]) + "の" + token.Surface
+				}
 			}
 		}
+
 		// implicit EOS
-		// e.g., した -> したの。
 		if i == len(tokens)-1 &&
 			(token.POS()[0] != "助詞" &&
 				token.POS()[0] != "記号" &&
 				token.POS()[0] != "名詞" &&
 				token.POS()[0] != "感動詞") {
 
-			rand.Seed(time.Now().UnixNano())
-			p := rand.Float32()
-			if p < 0.5 {
-				ret += "わ"
+			// interrogative sentence
+			if token.Surface == "か" {
+				retrune := []rune(ret)
+				ret = string(retrune[:len(retrune)-1]) + "かしら"
+				// normal sentence
 			} else {
-				ret += "の"
+				rand.Seed(time.Now().UnixNano())
+				p := rand.Float32()
+				if p < 0.5 {
+					ret += "わ"
+				} else {
+					ret += "の"
+				}
 			}
 		}
 	}

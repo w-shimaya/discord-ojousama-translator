@@ -7,6 +7,8 @@ import (
 	"strings"
 	"syscall"
 
+	"golang.org/x/text/width"
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -50,6 +52,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, "!ojou ") {
 		// [TODO] users should be able to register words
 		sentence := string([]rune(m.Content)[6:])
+		// widen all chars to avoid halfwidth symbol bugs
+		sentence = width.Widen.String(sentence)
+		// translate and send a msg
 		s.ChannelMessageSend(m.ChannelID, Translate(sentence))
 	}
 }
