@@ -42,7 +42,7 @@ func Translate(input string) string {
 	defer db.Close()
 
 	ret := ""
-	precedingPos := ""
+	var precedingPos []string
 	for i, token := range tokens {
 		if token.Class == tokenizer.DUMMY || token.Surface == "" {
 			continue
@@ -54,12 +54,12 @@ func Translate(input string) string {
 		// 連続する名詞の頭に「お」
 		pos := token.POS()
 		if pos[0] == "名詞" && (pos[1] == "一般" || pos[1] == "サ変接続" || pos[1] == "数" || pos[1] == "形容動詞語幹") {
-			// 先頭にあるか，一つ前が名詞，接頭詞でない
-			if i == 0 || (precedingPos != "名詞" && precedingPos != "接頭詞") {
+			// 先頭にあるか，一つ前が名詞，接頭詞，でない．ただし副詞可能名詞ならよい
+			if i == 0 || (precedingPos[0] != "名詞" && precedingPos[0] != "接頭詞") || precedingPos[1] == "副詞可能" {
 				ret += "お"
 			}
 		}
-		precedingPos = pos[0]
+		precedingPos = pos
 
 		// look up database
 		cand := []RegisteredWord{}
@@ -192,7 +192,8 @@ func Translate(input string) string {
 				p := rand.Float32()
 
 				desu := ""
-				if tokens[i-1].POS()[0] == "名詞" {
+				base, _ := token.BaseForm()
+				if tokens[i-1].POS()[0] == "名詞" && base != "だ" && base != "です" {
 					desu = "です"
 				}
 
