@@ -54,7 +54,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		sentence := string([]rune(m.Content)[6:])
 		// widen all chars to avoid halfwidth symbol bugs
 		sentence = width.Widen.String(sentence)
+		// add 「。」 for precise morpholigical analysis
+		added := false
+		if strings.HasSuffix(sentence, "。") || strings.HasSuffix(sentence, "！") || strings.HasSuffix(sentence, "？") {
+			added = true
+			sentence += "。"
+		}
 		// translate and send a msg
-		s.ChannelMessageSend(m.ChannelID, Translate(sentence))
+		translated := Translate(sentence)
+		// remove extra 「。」
+		if added {
+			r := []rune(translated)
+			translated = string(r[:len(r)-1])
+		}
+		// send the message
+		s.ChannelMessageSend(m.ChannelID, translated)
 	}
 }
